@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 
-from elasticsearch import Elasticsearch
-from elasticsearch import helpers
+from elasticsearch import Elasticsearch, helpers, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
 import argparse
 import sys
 
@@ -12,6 +12,8 @@ def parse_args():
     parser.add_argument('-n', '--new_index_name', action='store', help='Name for new index')
     parser.add_argument('-d', '--delete_index', action='store', help='Specify which index to delete')
     parser.add_argument('-e', '--endpoint', action='store', help='Specify Elasticsearch host', required=True)
+    parser.add_argument('-a', '--access_key', action='store', help='AWS Access Key')
+    parser.add_argument('-s', '--secret_key', action='store', help='AWS Secret Key')
     args = parser.parse_args()
     return args
 
@@ -21,7 +23,16 @@ def es():
     args = parse_args()
 
     host = args.endpoint
-    conn = Elasticsearch(host)
+    access_key = args.access_key
+    secret_key = args.secret_key
+    conn = Elasticsearch(
+        hosts=[{'host': host,
+                'port': 443}],
+        http_auth=AWS4Auth(access_key, secret_key, "us-east-1", 'es'),
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection
+    )
 
     return conn
 
